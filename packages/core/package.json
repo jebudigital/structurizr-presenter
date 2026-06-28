@@ -1,0 +1,22 @@
+{
+  "name": "@structurizr-presenter/core",
+  "version": "0.0.0",
+  "description": "IR, schema, validation, and layout for structurizr-presenter.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" } },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "yaml": "^2.5.1",
+    "elkjs": "^0.9.3"
+  }
+}
