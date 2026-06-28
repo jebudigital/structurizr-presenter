@@ -1,0 +1,34 @@
+:root {
+  --sp-bg: #0b1020;
+  --sp-fg: #f5f7fb;
+  --sp-muted: #6b7393;
+  --sp-accent: #5b8cff;
+  --sp-component-bg: #1a2240;
+  --sp-component-border: #2c3a6b;
+  --sp-component-bg-active: #233066;
+  --sp-component-border-active: #5b8cff;
+  --sp-edge: #6b7393;
+  --sp-edge-active: #5b8cff;
+  --sp-edge-dim: #2c3a6b;
+}
+html, body, #root { margin: 0; padding: 0; height: 100%; background: var(--sp-bg); color: var(--sp-fg); font-family: ui-sans-serif, system-ui, sans-serif; overflow: hidden; }
+.sp-app { display: flex; flex-direction: column; height: 100vh; }
+.sp-header { padding: 0.75rem 1.5rem; display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--sp-component-border); }
+.sp-title { font-size: 1rem; font-weight: 600; }
+.sp-step-title { font-size: 0.875rem; color: var(--sp-muted); }
+.sp-stage { position: relative; flex: 1; overflow: hidden; }
+.sp-narration { padding: 0.75rem 1.5rem; min-height: 3rem; border-top: 1px solid var(--sp-component-border); color: var(--sp-fg); font-size: 1rem; }
+.sp-progress { height: 4px; background: var(--sp-component-border); width: 100%; }
+.sp-progress-bar { height: 100%; background: var(--sp-accent); transition: width 200ms ease; }
+.sp-fs-btn { position: absolute; top: 0.75rem; right: 0.75rem; background: transparent; color: var(--sp-muted); border: 1px solid var(--sp-component-border); padding: 0.25rem 0.5rem; cursor: pointer; border-radius: 4px; z-index: 10; }
+.sp-fs-btn:hover { color: var(--sp-fg); }
+.sp-component { background: var(--sp-component-bg); border: 2px solid var(--sp-component-border); border-radius: 8px; padding: 0.5rem 0.75rem; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; }
+.sp-component-active { background: var(--sp-component-bg-active); border-color: var(--sp-component-border-active); box-shadow: 0 0 0 3px rgba(91, 140, 255, 0.25); }
+.sp-component-dim { opacity: 0.4; }
+.sp-component-name { font-weight: 600; font-size: 0.9rem; }
+.sp-component-kind { font-size: 0.7rem; color: var(--sp-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+.sp-edge-path { fill: none; stroke: var(--sp-edge); stroke-width: 1.5; }
+.sp-edge-path-active { stroke: var(--sp-edge-active); stroke-width: 2.5; }
+.sp-edge-path-dim { stroke: var(--sp-edge-dim); }
+.sp-edge-label { fill: var(--sp-muted); font-size: 0.75rem; }
+.sp-edge-label-active { fill: var(--sp-edge-active); }
