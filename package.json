@@ -14,7 +14,8 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "presenter": "node packages/cli/dist/cli.js"
   },
   "devDependencies": {
     "@types/node": "^20.16.10",

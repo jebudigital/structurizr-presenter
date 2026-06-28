@@ -1,11 +1,34 @@
-import ELK from "elkjs/lib/elk.bundled.js";
+import ELKModule from "elkjs/lib/elk.bundled.js";
 import type { ComponentNode, RelationshipEdge } from "./ir.js";
 import type { DslElement, DslRelationship } from "./dsl-resolver.js";
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 120;
 
-const elk = new ELK();
+interface ElkLayoutNode {
+  id: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+}
+
+interface ElkLayoutEdge {
+  sections?: Array<{
+    startPoint: { x: number; y: number };
+    endPoint: { x: number; y: number };
+    bendPoints?: Array<{ x: number; y: number }>;
+  }>;
+}
+
+interface ElkLayoutResult {
+  children?: ElkLayoutNode[];
+  edges?: ElkLayoutEdge[];
+}
+
+type ElkConstructor = new () => { layout: (graph: unknown) => Promise<ElkLayoutResult> };
+
+const elk = new (ELKModule as unknown as ElkConstructor)();
 
 export interface LayoutResult {
   components: ComponentNode[];

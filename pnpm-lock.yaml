@@ -33,6 +33,15 @@ importers:
         specifier: ^1.6.0
         version: 1.6.1(@types/node@20.19.43)
 
+  packages/cli:
+    dependencies:
+      '@structurizr-presenter/core':
+        specifier: workspace:*
+        version: link:../core
+      '@structurizr-presenter/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+
   packages/core:
     dependencies:
       ajv:

@@ -1,5 +1,5 @@
-import Ajv, { type ErrorObject } from "ajv";
-import addFormats from "ajv-formats";
+import AjvImport, { type ErrorObject, type ValidateFunction } from "ajv";
+import addFormatsImport from "ajv-formats";
 import { parse as parseYaml } from "yaml";
 import { sceneSchema } from "./schema.js";
 
@@ -27,6 +27,13 @@ export interface SceneFileStep {
 export type ValidationResult =
   | { ok: true; data: SceneFile }
   | { ok: false; errors: string[] };
+
+type AjvInstance = {
+  compile<T>(schema: object): ValidateFunction<T>;
+};
+
+const Ajv = AjvImport as unknown as new (opts?: object) => AjvInstance;
+const addFormats = addFormatsImport as unknown as (ajv: AjvInstance) => void;
 
 const ajv = new Ajv({ allErrors: true, strict: false });
 addFormats(ajv);

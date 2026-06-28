@@ -1,0 +1,20 @@
+title: Big Bank Architecture
+subtitle: A sample structurizr-presenter deck
+
+scenes:
+  - id: context
+    title: System Context
+    cast: [customer, internetBankingSystem, mainframe]
+    steps:
+      - title: Overview
+        narration: "Three actors in our banking landscape."
+        spotlight: "customer"
+        mode: pinpoint
+      - title: Customer journey
+        narration: "Customers interact with internet banking."
+        spotlight: "customer -> internetBankingSystem"
+        mode: pinpoint
+      - title: Backend integration
+        narration: "Internet banking talks to the mainframe."
+        spotlight: "internetBankingSystem -> mainframe"
+        mode: pinpoint
