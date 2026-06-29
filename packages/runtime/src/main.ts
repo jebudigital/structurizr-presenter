@@ -2,11 +2,13 @@ import "./styles.css";
 import { createRoot } from "react-dom/client";
 import { createElement } from "react";
 import { App } from "./index.js";
+import { EditApp } from "./edit.js";
 import type { IRPayload } from "@structurizr-presenter/core";
 
 declare global {
   interface Window {
     __SP_IR__?: IRPayload;
+    __SP_EDIT__?: boolean;
   }
 }
 
@@ -21,7 +23,8 @@ function boot(): void {
     console.error("structurizr-presenter: no #root element in the page.");
     return;
   }
-  createRoot(root).render(createElement(App, { ir: payload }));
+  const component = window.__SP_EDIT__ ? EditApp : App;
+  createRoot(root).render(createElement(component, { ir: payload }));
 }
 
 if (document.readyState === "loading") {

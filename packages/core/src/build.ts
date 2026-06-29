@@ -1,12 +1,14 @@
 import { extractFromDsl } from "./dsl-resolver.js";
 import { crossValidate } from "./cross-validator.js";
-import { layoutPresentation } from "./layout.js";
+import { layoutPresentation, normalize } from "./layout.js";
+import { connector } from "./geometry.js";
 import { parseSpotlight } from "./spotlight.js";
 import { validateSceneFile } from "./validator.js";
 import {
   IR_VERSION,
   type IRPayload,
   type Presentation,
+  type RelationshipEdge,
   type Scene,
   type SceneStep,
 } from "./ir.js";
@@ -15,9 +17,19 @@ export type BuildResult =
   | { ok: true; ir: IRPayload }
   | { ok: false; errors: string[] };
 
+/**
+ * Hand-placed component positions persisted by the WYSIWYG editor. When supplied,
+ * they override the auto-layout coordinates and edges are redrawn as straight
+ * connectors so arrows still attach to the moved boxes.
+ */
+export interface LayoutOverride {
+  components?: Record<string, { x?: number; y?: number }>;
+}
+
 export async function buildPresentationFromSources(
   dslText: string,
-  sceneYaml: string
+  sceneYaml: string,
+  layoutOverride?: LayoutOverride
 ): Promise<BuildResult> {
   const dslResult = extractFromDsl(dslText);
   if (!dslResult.ok) {
@@ -61,6 +73,34 @@ export async function buildPresentationFromSources(
     if (override?.description !== undefined) {
       node.description = override.description;
     }
+  }
+
+  // Apply hand-placed positions from the WYSIWYG editor, then redraw edges as
+  // straight connectors (ELK's orthogonal routing no longer fits moved boxes)
+  // and re-normalize so the origin and bounds stay consistent.
+  const positions = layoutOverride?.components;
+  if (positions) {
+    for (const node of layout.components) {
+      const pos = positions[node.id];
+      if (pos?.x !== undefined) node.x = pos.x;
+      if (pos?.y !== undefined) node.y = pos.y;
+    }
+    const byId = new Map(layout.components.map((c) => [c.id, c] as const));
+    layout.edges = relationships.map((r) => {
+      const source = byId.get(r.sourceId)!;
+      const target = byId.get(r.targetId)!;
+      const edge: RelationshipEdge = {
+        id: `${r.sourceId}->${r.targetId}`,
+        sourceId: r.sourceId,
+        targetId: r.targetId,
+        points: connector(source, target),
+      };
+      if (r.label) edge.label = r.label;
+      return edge;
+    });
+    const rebounded = normalize(layout.components, layout.edges);
+    layout.width = rebounded.width;
+    layout.height = rebounded.height;
   }
 
   const spotlightEdges = relationships.map((r) => ({

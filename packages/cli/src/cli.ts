@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { mkdir, readFile, writeFile, copyFile, access } from "node:fs/promises";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { createRequire } from "node:module";
 import path from "node:path";
 import {
@@ -9,6 +10,7 @@ import {
   extractFromDsl,
   validateSceneFile,
   type IRPayload,
+  type LayoutOverride,
 } from "@structurizr-presenter/core";
 
 const require = createRequire(import.meta.url);
@@ -53,11 +55,14 @@ Usage:
   structurizr-presenter init
   structurizr-presenter validate -d <workspace.dsl> -s <scenes.yaml>
   structurizr-presenter build   -d <workspace.dsl> -s <scenes.yaml> -o <output-dir>
+  structurizr-presenter edit    -d <workspace.dsl> -s <scenes.yaml>
 
 Options:
   -d    Path to workspace.dsl
   -s    Path to scene YAML file
   -o    Output directory (build only)
+  -l    Layout overrides JSON (default: <scenes-dir>/layout.json)
+  -p    Editor port (edit only, default 4321)
 `);
 }
 
@@ -186,6 +191,22 @@ function resolveRuntimeDir(): string {
   return path.dirname(require.resolve("@structurizr-presenter/runtime/package.json"));
 }
 
+function defaultLayoutPath(flags: Map<string, string>, scenePath: string): string {
+  return flags.get("l") ?? path.join(path.dirname(scenePath), "layout.json");
+}
+
+async function readLayout(layoutPath: string): Promise<LayoutOverride | undefined> {
+  if (!(await fileExists(layoutPath))) return undefined;
+  try {
+    return JSON.parse(await readFile(layoutPath, "utf8")) as LayoutOverride;
+  } catch (err) {
+    console.error(
+      `warning: ignoring ${layoutPath}: ${err instanceof Error ? err.message : String(err)}`
+    );
+    return undefined;
+  }
+}
+
 async function cmdBuild(flags: Map<string, string>): Promise<number> {
   const dslPath = await readRequired(flags, "d", "workspace.dsl");
   const scenePath = await readRequired(flags, "s", "scene YAML");
@@ -195,7 +216,11 @@ async function cmdBuild(flags: Map<string, string>): Promise<number> {
   const dslText = await readFile(dslPath, "utf8");
   const sceneYaml = await readFile(scenePath, "utf8");
 
-  const result = await buildPresentationFromSources(dslText, sceneYaml);
+  const layoutPath = defaultLayoutPath(flags, scenePath);
+  const layoutOverride = await readLayout(layoutPath);
+  if (layoutOverride) console.log(`Using hand-placed layout from ${layoutPath}`);
+
+  const result = await buildPresentationFromSources(dslText, sceneYaml, layoutOverride);
   if (!result.ok) {
     for (const err of result.errors) console.error(err);
     return 1;
@@ -223,6 +248,132 @@ async function cmdBuild(flags: Map<string, string>): Promise<number> {
   return 0;
 }
 
+function renderEditHtml(ir: IRPayload): string {
+  const title = escapeHtml(ir.presentation.title);
+  const irJson = JSON.stringify(ir).replace(/</g, "\\u003c");
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${title} — editor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="root"></div>
+  <script>window.__SP_IR__ = ${irJson}; window.__SP_EDIT__ = true;</script>
+  <script src="runtime.js"></script>
+</body>
+</html>
+`;
+}
+
+interface EditContext {
+  html: string;
+  runtimeJs: string;
+  runtimeCss: string;
+  layoutPath: string;
+}
+
+async function handleEditRequest(
+  req: IncomingMessage,
+  res: ServerResponse,
+  ctx: EditContext
+): Promise<void> {
+  const url = req.url ?? "/";
+
+  if (req.method === "POST" && url === "/__save") {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(chunk as Buffer);
+    try {
+      const parsed = JSON.parse(Buffer.concat(chunks).toString("utf8")) as LayoutOverride;
+      if (typeof parsed !== "object" || parsed === null || typeof parsed.components !== "object") {
+        throw new Error("expected { components: {...} }");
+      }
+      await writeFile(ctx.layoutPath, JSON.stringify(parsed, null, 2) + "\n", "utf8");
+      console.log(`Saved ${path.resolve(ctx.layoutPath)}`);
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (err) {
+      res.writeHead(400, { "content-type": "text/plain" });
+      res.end(err instanceof Error ? err.message : "bad request");
+    }
+    return;
+  }
+
+  if (url === "/" || url === "/index.html") {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(ctx.html);
+    return;
+  }
+  if (url === "/runtime.js") {
+    res.writeHead(200, { "content-type": "text/javascript" });
+    res.end(await readFile(ctx.runtimeJs));
+    return;
+  }
+  if (url === "/style.css" && (await fileExists(ctx.runtimeCss))) {
+    res.writeHead(200, { "content-type": "text/css" });
+    res.end(await readFile(ctx.runtimeCss));
+    return;
+  }
+  res.writeHead(404, { "content-type": "text/plain" });
+  res.end("not found");
+}
+
+async function cmdEdit(flags: Map<string, string>): Promise<number> {
+  const dslPath = await readRequired(flags, "d", "workspace.dsl");
+  const scenePath = await readRequired(flags, "s", "scene YAML");
+  if (!dslPath || !scenePath) return 1;
+
+  const port = Number(flags.get("p") ?? "4321");
+  const layoutPath = defaultLayoutPath(flags, scenePath);
+
+  const dslText = await readFile(dslPath, "utf8");
+  const sceneYaml = await readFile(scenePath, "utf8");
+  const layoutOverride = await readLayout(layoutPath);
+
+  const result = await buildPresentationFromSources(dslText, sceneYaml, layoutOverride);
+  if (!result.ok) {
+    for (const err of result.errors) console.error(err);
+    return 1;
+  }
+
+  const runtimeDir = resolveRuntimeDir();
+  const runtimeJs = path.join(runtimeDir, "dist", "runtime.js");
+  const runtimeCss = path.join(runtimeDir, "dist", "style.css");
+  if (!(await fileExists(runtimeJs))) {
+    console.error("error: runtime bundle not found — run `pnpm build` in the repo root first");
+    return 1;
+  }
+
+  const ctx: EditContext = {
+    html: renderEditHtml(result.ir),
+    runtimeJs,
+    runtimeCss,
+    layoutPath,
+  };
+
+  const server = createServer((req, res) => {
+    handleEditRequest(req, res, ctx).catch((err: unknown) => {
+      res.writeHead(500, { "content-type": "text/plain" });
+      res.end(err instanceof Error ? err.message : "server error");
+    });
+  });
+
+  return await new Promise<number>((resolve) => {
+    server.on("error", (err) => {
+      console.error(`error: ${err.message}`);
+      resolve(1);
+    });
+    server.listen(port, () => {
+      console.log(`Layout editor running at http://localhost:${port}`);
+      console.log(`Drag boxes, click "Save layout" → writes ${path.resolve(layoutPath)}`);
+      console.log(`Then rebuild: structurizr-presenter build -d ${dslPath} -s ${scenePath} -o <out>`);
+      console.log("Press Ctrl+C to stop.");
+    });
+  });
+}
+
 async function main(): Promise<number> {
   const args = process.argv.slice(2);
   const cmd = args[0];
@@ -239,6 +390,8 @@ async function main(): Promise<number> {
       return cmdValidate(parseFlags(args.slice(1)));
     case "build":
       return cmdBuild(parseFlags(args.slice(1)));
+    case "edit":
+      return cmdEdit(parseFlags(args.slice(1)));
     default:
       console.error(`error: unknown command "${cmd}"`);
       usage();

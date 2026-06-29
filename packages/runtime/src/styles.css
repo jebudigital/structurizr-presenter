@@ -33,3 +33,9 @@ html, body, #root { margin: 0; padding: 0; height: 100%; background: var(--sp-bg
 .sp-edge-path-dim { stroke: var(--sp-edge-dim); }
 .sp-edge-label { fill: var(--sp-muted); font-size: 0.75rem; }
 .sp-edge-label-active { fill: var(--sp-edge-active); }
+.sp-edit-toolbar { display: flex; align-items: center; gap: 0.75rem; }
+.sp-edit-status { font-size: 0.8rem; color: var(--sp-muted); }
+.sp-edit-save { background: var(--sp-accent); color: #fff; border: none; padding: 0.4rem 0.9rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+.sp-edit-save:hover { filter: brightness(1.1); }
+.sp-component-draggable { cursor: grab; user-select: none; touch-action: none; }
+.sp-component-draggable:active { cursor: grabbing; box-shadow: 0 0 0 3px rgba(91, 140, 255, 0.4); }

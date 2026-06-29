@@ -121,7 +121,7 @@ export async function layoutPresentation(
  * overall bounding box. ELK can emit negative coordinates and arbitrary offsets;
  * normalizing keeps the runtime's coordinate math simple and the diagram centerable.
  */
-function normalize(components: ComponentNode[], edges: RelationshipEdge[]): LayoutResult {
+export function normalize(components: ComponentNode[], edges: RelationshipEdge[]): LayoutResult {
   let minX = Infinity;
   let minY = Infinity;
   for (const c of components) {
