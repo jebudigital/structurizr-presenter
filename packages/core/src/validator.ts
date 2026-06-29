@@ -3,10 +3,19 @@ import addFormatsImport from "ajv-formats";
 import { parse as parseYaml } from "yaml";
 import { sceneSchema } from "./schema.js";
 
+export interface ComponentOverride {
+  description?: string;
+}
+
 export interface SceneFile {
   title: string;
   subtitle?: string;
-  defaults?: { mode?: "trailing" | "sticky" | "pinpoint" };
+  defaults?: {
+    mode?: "trailing" | "sticky" | "pinpoint";
+    direction?: "horizontal" | "vertical";
+  };
+  /** Per-component overrides keyed by DSL id. Currently supports `description`. */
+  components?: Record<string, ComponentOverride>;
   scenes: SceneFileScene[];
 }
 

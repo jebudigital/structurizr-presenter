@@ -16,7 +16,8 @@ html, body, #root { margin: 0; padding: 0; height: 100%; background: var(--sp-bg
 .sp-header { padding: 0.75rem 1.5rem; display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--sp-component-border); }
 .sp-title { font-size: 1rem; font-weight: 600; }
 .sp-step-title { font-size: 0.875rem; color: var(--sp-muted); }
-.sp-stage { position: relative; flex: 1; overflow: hidden; }
+.sp-stage { position: relative; flex: 1; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.sp-world { position: relative; flex: none; transform-origin: center center; }
 .sp-narration { padding: 0.75rem 1.5rem; min-height: 3rem; border-top: 1px solid var(--sp-component-border); color: var(--sp-fg); font-size: 1rem; }
 .sp-progress { height: 4px; background: var(--sp-component-border); width: 100%; }
 .sp-progress-bar { height: 100%; background: var(--sp-accent); transition: width 200ms ease; }

@@ -52,4 +52,51 @@ describe("buildPresentationFromSources", () => {
     const r = await buildPresentationFromSources(dsl, "title: [unclosed");
     expect(r.ok).toBe(false);
   });
+
+  it("defaults to vertical layout and reports diagram bounds", async () => {
+    const r = await buildPresentationFromSources(dsl, sceneYaml);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.ir.presentation.direction).toBe("vertical");
+    expect(r.ir.presentation.width).toBeGreaterThan(0);
+    expect(r.ir.presentation.height).toBeGreaterThan(0);
+  });
+
+  it("honors a horizontal direction default", async () => {
+    const yaml = `
+title: Big Bank
+defaults:
+  direction: horizontal
+scenes:
+  - id: context
+    title: Context
+    cast: [customer, internetBankingSystem, mainframe]
+    steps:
+      - spotlight: "all"
+`;
+    const r = await buildPresentationFromSources(dsl, yaml);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.ir.presentation.direction).toBe("horizontal");
+  });
+
+  it("applies a per-component description override", async () => {
+    const yaml = `
+title: Big Bank
+components:
+  internetBankingSystem:
+    description: "Short custom blurb"
+scenes:
+  - id: context
+    title: Context
+    cast: [customer, internetBankingSystem, mainframe]
+    steps:
+      - spotlight: "all"
+`;
+    const r = await buildPresentationFromSources(dsl, yaml);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const ibs = r.ir.presentation.components.find((c) => c.id === "internetBankingSystem");
+    expect(ibs?.description).toBe("Short custom blurb");
+  });
 });

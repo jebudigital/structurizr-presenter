@@ -27,6 +27,9 @@ export interface RelationshipEdge {
 
 export type SpotlightMode = "trailing" | "sticky" | "pinpoint";
 
+/** Orientation of the auto-layout. `vertical` stacks layers top→bottom; `horizontal` left→right. */
+export type LayoutDirection = "horizontal" | "vertical";
+
 export interface SceneStep {
   index: number;
   title?: string;
@@ -48,6 +51,12 @@ export interface Scene {
 export interface Presentation {
   title: string;
   subtitle?: string;
+  /** Orientation used to lay the diagram out. */
+  direction: LayoutDirection;
+  /** Bounding width of the laid-out diagram, in layout px. Origin is normalized to (0,0). */
+  width: number;
+  /** Bounding height of the laid-out diagram, in layout px. */
+  height: number;
   components: ComponentNode[];
   edges: RelationshipEdge[];
   scenes: Scene[];

@@ -39,4 +39,22 @@ describe("layoutPresentation", () => {
     const ab = r.edges.find((e) => e.sourceId === "a" && e.targetId === "b");
     expect(ab?.label).toBe("uses");
   });
+
+  it("normalizes coordinates to a (0,0) origin and reports bounds", async () => {
+    const r = await layoutPresentation(elements, rels);
+    expect(r.width).toBeGreaterThan(0);
+    expect(r.height).toBeGreaterThan(0);
+    const minX = Math.min(...r.components.map((c) => c.x));
+    const minY = Math.min(...r.components.map((c) => c.y));
+    expect(minX).toBeGreaterThanOrEqual(0);
+    expect(minY).toBeGreaterThanOrEqual(0);
+  });
+
+  it("orients horizontally vs vertically based on direction", async () => {
+    const vertical = await layoutPresentation(elements, rels, { direction: "vertical" });
+    const horizontal = await layoutPresentation(elements, rels, { direction: "horizontal" });
+    // A chain a->b->c is taller than wide vertically, and wider than tall horizontally.
+    expect(vertical.height).toBeGreaterThan(horizontal.height);
+    expect(horizontal.width).toBeGreaterThan(vertical.width);
+  });
 });

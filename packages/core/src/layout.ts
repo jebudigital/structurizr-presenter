@@ -1,5 +1,5 @@
 import ELKModule from "elkjs/lib/elk.bundled.js";
-import type { ComponentNode, RelationshipEdge } from "./ir.js";
+import type { ComponentNode, RelationshipEdge, LayoutDirection } from "./ir.js";
 import type { DslElement, DslRelationship } from "./dsl-resolver.js";
 
 const NODE_WIDTH = 220;
@@ -30,20 +30,32 @@ type ElkConstructor = new () => { layout: (graph: unknown) => Promise<ElkLayoutR
 
 const elk = new (ELKModule as unknown as ElkConstructor)();
 
+export interface LayoutOptions {
+  /** Diagram orientation. Defaults to `vertical`. */
+  direction?: LayoutDirection;
+}
+
 export interface LayoutResult {
   components: ComponentNode[];
   edges: RelationshipEdge[];
+  /** Bounding width of the laid-out diagram, origin-normalized to (0,0). */
+  width: number;
+  /** Bounding height of the laid-out diagram. */
+  height: number;
 }
 
 export async function layoutPresentation(
   elements: readonly DslElement[],
-  relationships: readonly DslRelationship[]
+  relationships: readonly DslRelationship[],
+  options: LayoutOptions = {}
 ): Promise<LayoutResult> {
+  const direction: LayoutDirection = options.direction ?? "vertical";
+  const elkDirection = direction === "horizontal" ? "RIGHT" : "DOWN";
   const graph = {
     id: "root",
     layoutOptions: {
       "elk.algorithm": "layered",
-      "elk.direction": "DOWN",
+      "elk.direction": elkDirection,
       "elk.spacing.nodeNode": "60",
       "elk.layered.spacing.nodeNodeBetweenLayers": "80",
     },
@@ -101,5 +113,46 @@ export async function layoutPresentation(
     return edge;
   });
 
-  return { components, edges };
+  return normalize(components, edges);
+}
+
+/**
+ * Shift all coordinates so the diagram's top-left origin is (0,0), and compute the
+ * overall bounding box. ELK can emit negative coordinates and arbitrary offsets;
+ * normalizing keeps the runtime's coordinate math simple and the diagram centerable.
+ */
+function normalize(components: ComponentNode[], edges: RelationshipEdge[]): LayoutResult {
+  let minX = Infinity;
+  let minY = Infinity;
+  for (const c of components) {
+    minX = Math.min(minX, c.x);
+    minY = Math.min(minY, c.y);
+  }
+  for (const e of edges) {
+    for (const p of e.points) {
+      minX = Math.min(minX, p.x);
+      minY = Math.min(minY, p.y);
+    }
+  }
+  if (!Number.isFinite(minX)) minX = 0;
+  if (!Number.isFinite(minY)) minY = 0;
+
+  let maxX = 0;
+  let maxY = 0;
+  for (const c of components) {
+    c.x -= minX;
+    c.y -= minY;
+    maxX = Math.max(maxX, c.x + c.width);
+    maxY = Math.max(maxY, c.y + c.height);
+  }
+  for (const e of edges) {
+    for (const p of e.points) {
+      p.x -= minX;
+      p.y -= minY;
+      maxX = Math.max(maxX, p.x);
+      maxY = Math.max(maxY, p.y);
+    }
+  }
+
+  return { components, edges, width: maxX, height: maxY };
 }

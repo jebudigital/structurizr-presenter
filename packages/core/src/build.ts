@@ -49,8 +49,19 @@ export async function buildPresentationFromSources(
     (r) => castUnion.has(r.sourceId) && castUnion.has(r.targetId)
   );
 
-  const layout = await layoutPresentation(elements, relationships);
+  const direction = sceneFile.defaults?.direction ?? "vertical";
+  const layout = await layoutPresentation(elements, relationships, { direction });
   const defaultMode = sceneFile.defaults?.mode ?? "trailing";
+
+  // Apply per-component overrides (e.g. a shorter custom description) onto the
+  // laid-out nodes. Defaults come from the C4 DSL; overrides win when present.
+  const overrides = sceneFile.components ?? {};
+  for (const node of layout.components) {
+    const override = overrides[node.id];
+    if (override?.description !== undefined) {
+      node.description = override.description;
+    }
+  }
 
   const spotlightEdges = relationships.map((r) => ({
     id: `${r.sourceId}->${r.targetId}`,
@@ -86,6 +97,9 @@ export async function buildPresentationFromSources(
 
   const presentation: Presentation = {
     title: sceneFile.title,
+    direction,
+    width: layout.width,
+    height: layout.height,
     components: layout.components,
     edges: layout.edges,
     scenes,

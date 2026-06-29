@@ -13,6 +13,17 @@ export const sceneSchema = {
       additionalProperties: false,
       properties: {
         mode: { type: "string", enum: ["trailing", "sticky", "pinpoint"] },
+        direction: { type: "string", enum: ["horizontal", "vertical"] },
+      },
+    },
+    components: {
+      type: "object",
+      additionalProperties: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          description: { type: "string" },
+        },
       },
     },
     scenes: {
